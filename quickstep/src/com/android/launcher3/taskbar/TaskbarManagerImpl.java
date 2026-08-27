@@ -488,7 +488,7 @@ public class TaskbarManagerImpl implements DisplayDecorationListener {
         SettingsCache.INSTANCE.get(mPrimaryWindowContext)
                 .register(NAVIGATION_BAR_HINT_URI, mOnTaskBarChangeListener);
         SettingsCache.INSTANCE.get(mPrimaryWindowContext)
-                .register(NAVBAR_IME_SPACE_URI, mOnTaskBarChangeListener);
+                .register(NAVBAR_IME_SPACE_URI, mOnSettingsChangeListener);
         SettingsCache.INSTANCE.get(mPrimaryWindowContext)
                 .register(FORCE_SHOW_NAVBAR_URI, mOnTaskBarChangeListener);
         if (DesktopExperienceFlags.ENABLE_SYS_DECORS_CALLBACKS_VIA_WM.isTrue()
@@ -1227,7 +1227,7 @@ public class TaskbarManagerImpl implements DisplayDecorationListener {
         SettingsCache.INSTANCE.get(mPrimaryWindowContext)
                 .unregister(NAVIGATION_BAR_HINT_URI, mOnTaskBarChangeListener);
         SettingsCache.INSTANCE.get(mPrimaryWindowContext)
-                .unregister(NAVBAR_IME_SPACE_URI, mOnTaskBarChangeListener);
+                .unregister(NAVBAR_IME_SPACE_URI, mOnSettingsChangeListener);
         SettingsCache.INSTANCE.get(mPrimaryWindowContext)
                 .unregister(FORCE_SHOW_NAVBAR_URI, mOnTaskBarChangeListener);
         if (DesktopExperienceFlags.ENABLE_SYS_DECORS_CALLBACKS_VIA_WM.isTrue()
