@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2026 The RuriseOS Project
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<resources>
+    <!-- Unlock animation -->
+    <string name="pref_unlock_animation_style_title">Unlock animation</string>
+    <string name="unlock_animation_style_none">None (system default)</string>
+    <string name="unlock_animation_style_ring">Ring reveal</string>
+
+    <!-- Labels for pref_unlock_animation_style, in the same order as
+         unlock_animation_style_values. -->
+    <string-array name="unlock_animation_style_entries">
+        <item>@string/unlock_animation_style_none</item>
+        <item>@string/unlock_animation_style_ring</item>
+    </string-array>
+
+    <!-- Stored values for pref_unlock_animation_style, must match the ids in
+         com.android.quickstep.unlock.UnlockAnimationStyles. -->
+    <string-array name="unlock_animation_style_values" translatable="false">
+        <item>none</item>
+        <item>ring</item>
+    </string-array>
+</resources>
