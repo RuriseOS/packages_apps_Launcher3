@@ -210,6 +210,7 @@ import com.android.quickstep.split.SplitSelectStateController;
 import com.android.quickstep.split.SplitToWorkspaceController;
 import com.android.quickstep.split.SplitWithKeyboardShortcutController;
 import com.android.quickstep.sysuiconnection.SysUIConnectionTracker;
+import com.android.quickstep.unlock.DreamEntryTransition;
 import com.android.quickstep.unlock.LauncherUnlockAnimationController;
 import com.android.quickstep.unlock.UnlockAnimationStyle;
 import com.android.quickstep.unlock.UnlockAnimationStyles;
@@ -275,6 +276,7 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
     private LauncherDepthController mDepthController;
     private QuickstepTransitionManager mAppTransitionManager;
     private LauncherUnlockAnimationController mUnlockAnimationController;
+    private DreamEntryTransition mDreamEntryTransition;
     private final LauncherPrefChangeListener mUnlockAnimationStyleListener = key -> {
         if (LauncherPrefs.UNLOCK_ANIMATION_STYLE.getSharedPrefKey().equals(key)) {
             updateUnlockAnimationController();
@@ -1654,8 +1656,9 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
     }
 
     /**
-     * Registers, updates or removes the unlock animation controller to match the selected style.
-     * With no style selected SystemUI plays its default unlock transition without Launcher.
+     * Registers, updates or removes the unlock animation controller and the dream entry
+     * transition to match the selected style. With no style selected SystemUI plays its default
+     * transitions without Launcher.
      */
     private void updateUnlockAnimationController() {
         UnlockAnimationStyle style = UnlockAnimationStyles.fromId(
@@ -1666,8 +1669,12 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
             mUnlockAnimationController = new LauncherUnlockAnimationController(this, style);
             SystemUiProxy.INSTANCE.get(this).setLauncherUnlockAnimationController(
                     getClass().getName(), mUnlockAnimationController);
+            mDreamEntryTransition = new DreamEntryTransition(this, style);
+            SystemUiProxy.INSTANCE.get(this).registerRemoteTransition(
+                    mDreamEntryTransition.getRemoteTransition());
         } else {
             mUnlockAnimationController.setStyle(style);
+            mDreamEntryTransition.setStyle(style);
         }
     }
 
@@ -1678,6 +1685,10 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
         SystemUiProxy.INSTANCE.get(this).setLauncherUnlockAnimationController(null, null);
         mUnlockAnimationController.destroy();
         mUnlockAnimationController = null;
+        SystemUiProxy.INSTANCE.get(this).unregisterRemoteTransition(
+                mDreamEntryTransition.getRemoteTransition());
+        mDreamEntryTransition.destroy();
+        mDreamEntryTransition = null;
     }
 
     @Override
@@ -1698,6 +1709,9 @@ public class QuickstepLauncher extends Launcher implements RecentsViewContainer,
         }
         if (mUnlockAnimationController != null) {
             mUnlockAnimationController.dump(prefix + "\t" + RING_APPEAR_ANIMATION_PREFIX, writer);
+        }
+        if (mDreamEntryTransition != null) {
+            mDreamEntryTransition.dump(prefix + "\t" + RING_APPEAR_ANIMATION_PREFIX, writer);
         }
         if (mHotseatPredictionController != null) {
             mHotseatPredictionController.dump(prefix, writer);
