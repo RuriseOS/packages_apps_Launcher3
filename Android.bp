@@ -430,6 +430,7 @@ android_library {
         "Launcher3ResLib",
         "lottie",
         "SystemUISharedLib",
+        "SurfaceEffectsViewLib",
         "SettingsLibSettingsTheme",
         "dagger2",
         "protolog-group",

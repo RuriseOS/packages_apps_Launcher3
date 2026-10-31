@@ -53,7 +53,8 @@
             android:resumeWhilePausing="true"
             android:taskAffinity=""
             android:exported="true"
-            android:enabled="true">
+            android:enabled="true"
+            android:directBootAware="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.intent.action.SHOW_WORK_APPS" />
@@ -70,6 +71,15 @@
                 android:name="com.android.launcher3.themedicon.option"
                 android:value="${packageName}.grid_control" />
         </activity>
+
+        <!--
+        Created by PostBootComponentFactory in place of the activity above while the user is
+        still locked after a restart. Never resolved through intents.
+        -->
+        <activity
+            android:name="com.android.quickstep.postboot.PostBootActivity"
+            android:enabled="false"
+            android:exported="false" />
 
     </application>
 </manifest>

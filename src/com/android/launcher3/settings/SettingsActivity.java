@@ -27,6 +27,7 @@ import static com.android.launcher3.InvariantDeviceProfile.TYPE_TABLET;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
 
 import android.app.Activity;
+import android.app.KeyguardManager;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.LauncherApps;
@@ -45,6 +46,7 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
+import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceFragmentCompat.OnPreferenceStartFragmentCallback;
@@ -57,6 +59,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.android.launcher3.BuildConfig;
 import com.android.launcher3.InvariantDeviceProfile;
 import com.android.launcher3.LauncherFiles;
+import com.android.launcher3.LauncherPrefs;
 import com.android.launcher3.R;
 import com.android.launcher3.display.DisplayController;
 import com.android.launcher3.display.LauncherDisplayInfo;
@@ -95,6 +98,7 @@ public class SettingsActivity extends FragmentActivity
     private static final String KEY_MINUS_ONE = "pref_enable_minus_one";
     private static final String SEARCH_PACKAGE = "com.google.android.googlequicksearchbox";
     public static final String KEY_TRUST_APPS = "pref_trust_apps";
+    private static final String KEY_POST_BOOT_LOADER_STYLE = "pref_post_boot_loader_style";
 
     private static final String KEY_SUGGESTIONS = "pref_suggestions";
     private static final String SUGGESTIONS_PACKAGE = "com.google.android.as";
@@ -372,6 +376,23 @@ public class SettingsActivity extends FragmentActivity
                         return true;
                     });
                     return true;
+                case KEY_POST_BOOT_LOADER_STYLE:
+                    ListPreference loaderStyle = (ListPreference) preference;
+                    // Stored in device protected storage so that it can be read before the first
+                    // unlock, which the preference framework can't do by itself.
+                    loaderStyle.setValue(LauncherPrefs.POST_BOOT_LOADER_STYLE.get(getContext()));
+                    loaderStyle.setOnPreferenceChangeListener((pref, newValue) -> {
+                        LauncherPrefs.get(getContext()).put(
+                                LauncherPrefs.POST_BOOT_LOADER_STYLE, (String) newValue);
+                        return true;
+                    });
+                    // The loader is only shown while the user is locked, which needs a screen
+                    // lock. Keep the choice for when one is set.
+                    loaderStyle.setSummaryProvider(pref -> isDeviceSecure()
+                            ? loaderStyle.getEntry()
+                            : getString(R.string.pref_post_boot_loader_style_requires_lock));
+                    loaderStyle.setEnabled(isDeviceSecure());
+                    return true;
                 case SHOW_HOTSEAT_QSB_KEY:
                     return launcherApps != null &&
                             launcherApps.isPackageEnabled(SEARCH_PACKAGE, myUserHandle());
@@ -382,6 +403,12 @@ public class SettingsActivity extends FragmentActivity
         @Override
         public void onResume() {
             super.onResume();
+
+            // A screen lock may have been set or removed while away
+            Preference loaderStyle = findPreference(KEY_POST_BOOT_LOADER_STYLE);
+            if (loaderStyle != null) {
+                loaderStyle.setEnabled(isDeviceSecure());
+            }
 
             if (isAdded() && !mPreferenceHighlighted) {
                 PreferenceHighlighter highlighter = createHighlighter();
@@ -403,6 +430,12 @@ public class SettingsActivity extends FragmentActivity
                 mSettingCacheSafeCloseable.close();
                 mSettingCacheSafeCloseable = null;
             }
+        }
+
+        private boolean isDeviceSecure() {
+            KeyguardManager keyguardManager =
+                    getContext().getSystemService(KeyguardManager.class);
+            return keyguardManager != null && keyguardManager.isDeviceSecure();
         }
 
         /**

@@ -17,4 +17,8 @@
     <string name="pref_unlock_animation_style_title">解鎖動畫</string>
     <string name="unlock_animation_style_none">無（系統預設）</string>
     <string name="unlock_animation_style_ring">環狀浮現</string>
+    <string name="pref_post_boot_loader_style_title">重新開機後的載入畫面</string>
+    <string name="post_boot_loader_style_none">無（系統預設）</string>
+    <string name="post_boot_loader_style_glow">柔光</string>
+    <string name="pref_post_boot_loader_style_requires_lock">需要設定螢幕鎖定</string>
 </resources>

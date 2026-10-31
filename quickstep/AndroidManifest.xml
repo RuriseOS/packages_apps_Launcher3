@@ -85,7 +85,9 @@
          android:theme="@style/AppTheme"
          android:largeHeap="@bool/config_largeHeap"
          android:restoreAnyVersion="true"
-         android:supportsRtl="true">
+         android:supportsRtl="true"
+         android:appComponentFactory="com.android.quickstep.postboot.PostBootComponentFactory"
+         tools:replace="android:appComponentFactory">
 
         <service android:name="com.android.quickstep.TouchInteractionService"
              android:permission="android.permission.STATUS_BAR_SERVICE"
