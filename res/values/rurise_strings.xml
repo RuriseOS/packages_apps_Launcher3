@@ -32,4 +32,24 @@
         <item>none</item>
         <item>ring</item>
     </string-array>
+
+    <!-- Loading screen shown after the first unlock following a restart -->
+    <string name="pref_post_boot_loader_style_title">Loading screen after restart</string>
+    <string name="post_boot_loader_style_none">None (system default)</string>
+    <string name="post_boot_loader_style_glow">Soft glow</string>
+    <string name="pref_post_boot_loader_style_requires_lock">Requires a screen lock</string>
+
+    <!-- Labels for pref_post_boot_loader_style, in the same order as
+         post_boot_loader_style_values. -->
+    <string-array name="post_boot_loader_style_entries">
+        <item>@string/post_boot_loader_style_none</item>
+        <item>@string/post_boot_loader_style_glow</item>
+    </string-array>
+
+    <!-- Stored values for pref_post_boot_loader_style, must match the ids in
+         com.android.quickstep.postboot.PostBootLoaderStyles. -->
+    <string-array name="post_boot_loader_style_values" translatable="false">
+        <item>none</item>
+        <item>glow</item>
+    </string-array>
 </resources>

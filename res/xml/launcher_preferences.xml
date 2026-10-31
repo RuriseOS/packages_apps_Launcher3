@@ -43,6 +43,16 @@
         android:entryValues="@array/unlock_animation_style_values"
         launcher:useSimpleSummaryProvider="true" />
 
+    <ListPreference
+        android:defaultValue="none"
+        android:key="pref_post_boot_loader_style"
+        android:persistent="false"
+        android:title="@string/pref_post_boot_loader_style_title"
+        android:dialogTitle="@string/pref_post_boot_loader_style_title"
+        android:entries="@array/post_boot_loader_style_entries"
+        android:entryValues="@array/post_boot_loader_style_values"
+        launcher:useSimpleSummaryProvider="true" />
+
     <com.android.launcher3.settings.NotificationDotsPreference
         android:key="pref_icon_badging"
         android:title="@string/notification_dots_title"

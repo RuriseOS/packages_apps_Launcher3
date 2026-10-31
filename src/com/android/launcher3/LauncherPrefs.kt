@@ -268,6 +268,10 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
         @JvmField val SLEEP_GESTURE = backedUpItem("pref_sleep_gesture", false)
         @JvmField
         val UNLOCK_ANIMATION_STYLE = backedUpItem("pref_unlock_animation_style", "none")
+        // Read before the user unlocks for the first time after boot, so it must not be encrypted
+        @JvmField
+        val POST_BOOT_LOADER_STYLE =
+            backedUpItem("pref_post_boot_loader_style", "none", EncryptionType.DEVICE_PROTECTED)
         @JvmField val WORKSPACE_LOCK = backedUpItem("pref_workspace_lock", false)
         @JvmField
         val PROMISE_ICON_IDS = nonRestorableItem(InstallSessionHelper.PROMISE_ICON_IDS, "")
