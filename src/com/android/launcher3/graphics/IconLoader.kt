@@ -74,7 +74,8 @@ constructor(
 
         var badge: Drawable? = null
         if ((info is ItemInfoWithIcon) && !info.matchingLookupFlag.useLowRes()) {
-            badge = info.bitmap.getBadgeDrawable(context, useTheme)
+            badge =
+                info.bitmap.getBadgeDrawable(context, useTheme, themeManager.iconShapeData.value)
         }
 
         if (info is PendingAddShortcutInfo) {

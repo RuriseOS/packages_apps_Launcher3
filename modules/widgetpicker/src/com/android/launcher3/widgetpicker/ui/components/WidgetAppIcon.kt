@@ -189,20 +189,20 @@ private class IconShape : Shape {
             RectF(0f, 0f, size.width, size.height),
             Matrix.ScaleToFit.CENTER,
         )
-        IconMask.transform(matrix, scaledPath)
+        // Not kept in a static, as the system icon mask can change while the process is alive.
+        AdaptiveIconDrawable(
+                /*backgroundDrawable=*/ android.graphics.Color.WHITE.toDrawable(),
+                /*foregroundDrawable=*/ null,
+            )
+            .apply { setBounds(0, 0, DEFAULT_PATH_SIZE.toInt(), DEFAULT_PATH_SIZE.toInt()) }
+            .iconMask
+            .transform(matrix, scaledPath)
 
         return Outline.Generic(scaledPath.asComposePath())
     }
 
     companion object {
         private const val DEFAULT_PATH_SIZE = 100f
-        private val IconMask: Path =
-            AdaptiveIconDrawable(
-                    /*backgroundDrawable=*/ android.graphics.Color.WHITE.toDrawable(),
-                    /*foregroundDrawable=*/ null,
-                )
-                .apply { setBounds(0, 0, DEFAULT_PATH_SIZE.toInt(), DEFAULT_PATH_SIZE.toInt()) }
-                .iconMask
     }
 }
 

@@ -34,6 +34,7 @@ import com.android.launcher3.graphics.ThemeManager
 import com.android.launcher3.icons.BaseIconFactory.IconOptions
 import com.android.launcher3.icons.BitmapInfo
 import com.android.launcher3.icons.IconCache
+import com.android.launcher3.icons.IconShape
 import com.android.launcher3.icons.cache.AppInfoCachingLogic
 import com.android.launcher3.pm.UserCache
 import com.android.launcher3.util.CancellableTask
@@ -78,6 +79,10 @@ constructor(
 
     private var taskVisualsChangeListener: TaskVisualsChangeListener? = null
 
+    // Current launcher icon shape, so task icons follow it instead of the shape they were cached
+    // with.
+    @Volatile private var iconShape: IconShape? = null
+
     init {
         // TODO (b/397205964): this will need to be updated when we support caches for different
         //  displays.
@@ -92,7 +97,18 @@ constructor(
             val themeChangeListener = ThemeManager.ThemeChangeListener { clearCache() }
             themeManager.addChangeListener(themeChangeListener)
 
-            Runnable { themeManager.removeChangeListener(themeChangeListener) }
+            // The placeholder is used until the shape is generated, and has an opaque shadow layer.
+            iconShape = themeManager.iconShapeData.value.takeUnless { it === IconShape.EMPTY }
+            val iconShapeCloseable =
+                themeManager.iconShapeData.forEach(uiExecutor) { shape ->
+                    iconShape = shape.takeUnless { it === IconShape.EMPTY }
+                    clearCache()
+                }
+
+            Runnable {
+                themeManager.removeChangeListener(themeChangeListener)
+                iconShapeCloseable.close()
+            }
         }
         daggerSingletonTracker.addCloseable(themeManagerWrapper)
     }
@@ -111,18 +127,18 @@ constructor(
 
         // Return from cache if present
         bitmapInfoCache.getAndInvalidateIfModified(task.key)?.let {
-            return it.toTaskCacheEntry(context)
+            return it.toTaskCacheEntry(context, iconShape)
         }
 
         return withContext(dispatcherProvider.ioBackground) {
             val entry =
                 getBitmapInfoCacheEntry(task)
                     .apply {
-                        task.icon = bitmapInfo.newIcon(context)
+                        task.icon = bitmapInfo.newIcon(context, 0, iconShape)
                         task.titleDescription = contentDescription
                         task.title = title
                     }
-                    .toTaskCacheEntry(context)
+                    .toTaskCacheEntry(context, iconShape)
             dispatchIconUpdate(task.key.id)
             return@withContext entry
         }
@@ -151,7 +167,7 @@ constructor(
             bitmapInfo,
             title,
             contentDescription ->
-            val icon = bitmapInfo.newIcon(context)
+            val icon = bitmapInfo.newIcon(context, 0, iconShape)
             task.icon = icon
             callback.onTaskIconReceived(icon, title, contentDescription)
         }
@@ -304,8 +320,12 @@ constructor(
         val contentDescription: String = "",
         val title: String = "",
     ) {
-        fun toTaskCacheEntry(context: Context): TaskCacheEntry {
-            return TaskCacheEntry(bitmapInfo.newIcon(context), contentDescription, title)
+        fun toTaskCacheEntry(context: Context, iconShape: IconShape?): TaskCacheEntry {
+            return TaskCacheEntry(
+                bitmapInfo.newIcon(context, 0, iconShape),
+                contentDescription,
+                title,
+            )
         }
     }
 
