@@ -378,9 +378,9 @@ public abstract class ItemInfoWithIcon extends ItemInfo {
      * Returns true if the current BitmapInfo can support cropping to custom icon shapes.
      */
     public boolean supportsCustomShapes(@DrawableCreationFlags int creationFlags) {
-        return Flags.enableLauncherIconShapes()
-                && (creationFlags & FLAG_THEMED) != 0
-                && bitmap.isFullBleed();
+        // The icon shape is also applied system-wide, so use it for unthemed surfaces such as
+        // the shortcut menu too, instead of the default shape cached with the bitmap.
+        return Flags.enableLauncherIconShapes() && bitmap.isFullBleed();
     }
 
     /**
