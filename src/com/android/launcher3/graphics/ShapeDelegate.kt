@@ -48,6 +48,8 @@ import com.android.launcher3.folder.Folder
 import com.android.launcher3.folder.FolderPagedView
 import com.android.launcher3.icons.RoundRectEstimator.estimateRadius
 import com.android.launcher3.views.ClipPathView
+import kotlin.math.min
+import kotlin.math.sqrt
 
 /** Abstract representation of the shape of an icon shape */
 interface ShapeDelegate {
@@ -79,6 +81,28 @@ interface ShapeDelegate {
         endRadius: Float,
         isReversed: Boolean,
     ): ValueAnimator where T : View, T : ClipPathView
+
+    /**
+     * Returns the largest corner radii of a rounded rect filling the icon bounds that still
+     * contains this shape, as ratios of the bounds size, in the order top-left, top-right,
+     * bottom-left, bottom-right.
+     */
+    fun getEnclosingCornerRadii(): FloatArray
+
+    /** Returns the smallest of [getEnclosingCornerRadii]. */
+    fun getMinEnclosingCornerRadius(): Float = getEnclosingCornerRadii().min()
+
+    /**
+     * Like [createRevealAnimator], but ends on the rounded rect enclosing this shape. [endRadius]
+     * is ignored by shapes whose enclosing rounded rect has distinct corner radii.
+     */
+    fun <T> createOpenRevealAnimator(
+        target: T,
+        startRect: Rect,
+        endRect: Rect,
+        endRadius: Float,
+    ): ValueAnimator where T : View, T : ClipPathView =
+        createRevealAnimator(target, startRect, endRect, endRadius, false /* isReversed */)
 
     class Circle : RoundedSquare(1f) {
 
@@ -165,6 +189,8 @@ interface ShapeDelegate {
             }
         }
 
+        override fun getEnclosingCornerRadii() = FloatArray(4) { radiusRatio / 2 }
+
         override fun equals(other: Any?) =
             other is RoundedSquare && other.radiusRatio == radiusRatio
 
@@ -186,6 +212,23 @@ interface ShapeDelegate {
             }
         private val tmpPath = Path()
         private val tmpMatrix = Matrix()
+        private val enclosingRadiusRatios by lazy {
+            val radii = FloatArray(4) { 0.5f }
+            val points = basePath.approximate(0.1f)
+            for (i in points.indices step 3) {
+                val x = points[i + 1]
+                val y = points[i + 2]
+                val dx = min(x, DEFAULT_PATH_SIZE - x).coerceAtLeast(0f)
+                val dy = min(y, DEFAULT_PATH_SIZE - y).coerceAtLeast(0f)
+                // Solves (r - dx)^2 + (r - dy)^2 = r^2 for a corner arc going through the point.
+                val radius = dx + dy + sqrt(2 * dx * dy)
+                val corner =
+                    (if (x < DEFAULT_PATH_SIZE / 2) 0 else 1) +
+                        (if (y < DEFAULT_PATH_SIZE / 2) 0 else 2)
+                radii[corner] = min(radii[corner], radius / DEFAULT_PATH_SIZE)
+            }
+            radii
+        }
 
         override fun drawShape(
             canvas: Canvas,
@@ -226,9 +269,43 @@ interface ShapeDelegate {
             endRect: Rect,
             endRadius: Float,
             isReversed: Boolean,
+        ): ValueAnimator where T : View, T : ClipPathView =
+            createRevealAnimator(
+                target,
+                startRect,
+                // End poly is defined as a rectangle starting at top/center so that the
+                // transformation has minimum motion
+                createRoundedRect(
+                    left = endRect.left.toFloat(),
+                    top = endRect.top.toFloat(),
+                    right = endRect.right.toFloat(),
+                    bottom = endRect.bottom.toFloat(),
+                    cornerR = endRadius,
+                ),
+                isReversed,
+            )
+
+        override fun getEnclosingCornerRadii() = enclosingRadiusRatios
+
+        override fun <T> createOpenRevealAnimator(
+            target: T,
+            startRect: Rect,
+            endRect: Rect,
+            endRadius: Float,
+        ): ValueAnimator where T : View, T : ClipPathView =
+            createRevealAnimator(
+                target,
+                startRect,
+                createRoundedRect(endRect, enclosingRadiusRatios),
+                false /* isReversed */,
+            )
+
+        private fun <T> createRevealAnimator(
+            target: T,
+            startRect: Rect,
+            endPoly: RoundedPolygon,
+            isReversed: Boolean,
         ): ValueAnimator where T : View, T : ClipPathView {
-            // End poly is defined as a rectangle starting at top/center so that the
-            // transformation has minimum motion
             val morph =
                 Morph(
                     start =
@@ -241,14 +318,7 @@ interface ShapeDelegate {
                                 )
                             }
                         ),
-                    end =
-                        createRoundedRect(
-                            left = endRect.left.toFloat(),
-                            top = endRect.top.toFloat(),
-                            right = endRect.right.toFloat(),
-                            bottom = endRect.bottom.toFloat(),
-                            cornerR = endRadius,
-                        ),
+                    end = endPoly,
                 )
             val pathProvider = { progress: Float, path: PathWrapper ->
                 path.path.set(morph.toPath(progress, path.path))
@@ -412,6 +482,21 @@ interface ShapeDelegate {
                 centerX = (right - left) / 2,
                 centerY = (bottom - top) / 2,
                 rounding = CornerRounding(cornerR),
+            )
+
+        /**
+         * Creates a rounded rect at the origin with the size of [rect] and corner radii as
+         * [radiusRatios] of its width, in the order top-left, top-right, bottom-left, bottom-right.
+         */
+        private fun createRoundedRect(rect: Rect, radiusRatios: FloatArray) =
+            RoundedPolygon.rectangle(
+                width = rect.width().toFloat(),
+                height = rect.height().toFloat(),
+                centerX = rect.width() / 2f,
+                centerY = rect.height() / 2f,
+                // The rectangle vertices start at the bottom-right corner and go clockwise.
+                perVertexRounding =
+                    listOf(3, 2, 0, 1).map { CornerRounding(rect.width() * radiusRatios[it]) },
             )
     }
 

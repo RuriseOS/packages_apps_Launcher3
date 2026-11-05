@@ -55,6 +55,7 @@ import static com.android.launcher3.Utilities.mapBoundToRange;
 import static com.android.launcher3.config.FeatureFlags.SEPARATE_RECENTS_ACTIVITY;
 import static com.android.launcher3.desktop.DesktopAppLaunchTransitionManager.createDesktopAppLaunchRemoteTransition;
 import static com.android.launcher3.desktop.DesktopAppLaunchTransitionManager.isDesktopAppLaunch;
+import static com.android.launcher3.icons.IconNormalizer.ICON_VISIBLE_AREA_FACTOR;
 import static com.android.launcher3.taskbar.TaskbarStashController.TASKBAR_STASH_DURATION_WITHOUT_ICON_ALIGNMENT;
 import static com.android.launcher3.testing.shared.TestProtocol.WALLPAPER_OPEN_ANIMATION_FINISHED_MESSAGE;
 import static com.android.launcher3.util.Executors.MAIN_EXECUTOR;
@@ -131,6 +132,7 @@ import com.android.launcher3.anim.AnimatorListeners;
 import com.android.launcher3.compat.AccessibilityManagerCompat;
 import com.android.launcher3.desktop.DesktopAppLaunchTransition.AppLaunchType;
 import com.android.launcher3.dragndrop.DragLayer;
+import com.android.launcher3.graphics.ThemeManager;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.remoteanimations.AnimOpenProperties;
 import com.android.launcher3.remoteanimations.ContainerAnimationRunner;
@@ -956,9 +958,24 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
             }
         });
 
-        final float initialWindowRadius = supportsRoundedCornersOnWindows(mLauncher.getResources())
-                ? Math.max(crop.width(), crop.height()) / 2f
-                : 0f;
+        // Start on the largest radii that don't cut the icon drawn by the starting window.
+        final float[] initialRadiusRatios =
+                supportsRoundedCornersOnWindows(mLauncher.getResources())
+                        ? ThemeManager.INSTANCE.get(mLauncher).getIconShape()
+                                .getEnclosingCornerRadii()
+                        : new float[4];
+        float minRadiusRatio = Float.MAX_VALUE;
+        float maxRadiusRatio = 0f;
+        for (float ratio : initialRadiusRatios) {
+            minRadiusRatio = Math.min(minRadiusRatio, ratio);
+            maxRadiusRatio = Math.max(maxRadiusRatio, ratio);
+        }
+        final int initialCropSize = Math.max(crop.width(), crop.height());
+        final float initialWindowRadius = minRadiusRatio * initialCropSize;
+        // The icon corners don't map to the same window corners when the window is rotated.
+        final boolean hasDistinctCornerRadii =
+                minRadiusRatio != maxRadiusRatio && rotationChange == 0;
+        final float finalWindowRadius = getWindowCornerRadius(mLauncher);
         final float finalShadowRadius = appTargetsAreTranslucent ? 0 : mMaxShadowRadius;
 
         MultiValueUpdateListener listener = new MultiValueUpdateListener(mOpeningInterpolator) {
@@ -971,8 +988,8 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                     clampToDuration(LINEAR, APP_LAUNCH_ALPHA_START_DELAY, APP_LAUNCH_ALPHA_DURATION,
                             APP_LAUNCH_DURATION));
 
-            FloatProp mWindowRadius =
-                    new FloatProp(initialWindowRadius, getWindowCornerRadius(mLauncher));
+            FloatProp mWindowRadius = new FloatProp(initialWindowRadius, finalWindowRadius);
+            FloatProp mCornerRadiiProgress = new FloatProp(0f, 1f);
             FloatProp mShadowRadius = new FloatProp(0, finalShadowRadius);
 
             FloatProp mCropRectCenterX = new FloatProp(prop.cropCenterXStart, prop.cropCenterXEnd);
@@ -989,6 +1006,11 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
             FloatProp mBlurRadius = new FloatProp(0f, mMaxBlurRadius, DECELERATE_1_5);
             FloatProp mBlurScrimAlpha = new FloatProp(0f, scrimAlpha, DECELERATE_1_5);
+
+            private float getCornerRadius(float initialRatio) {
+                return Utilities.mapRange(mCornerRadiiProgress.value,
+                        initialRatio * initialCropSize, finalWindowRadius);
+            }
 
             @Override
             public void onUpdate(float percent, boolean initOnly) {
@@ -1049,13 +1071,25 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                 float offsetX = (scaledCropWidth - iconWidth) / 2;
                 float offsetY = (scaledCropHeight - iconHeight) / 2;
 
+                // The starting window icon fills the crop, whereas the launcher icon only fills
+                // the visible area of its bounds. Grow the window to the icon bounds along with
+                // the shape reveal of the floating icon, so that its size doesn't jump.
+                float windowIconScale = mapBoundToRange(percent, 0f, SHAPE_PROGRESS_DURATION,
+                        ICON_VISIBLE_AREA_FACTOR, 1f, LINEAR);
+                float windowScale = Math.min(1f, Math.max(scaleX, scaleY) * windowIconScale);
+                float scaledWindowWidth = windowCropWidth * windowScale;
+                float scaledWindowHeight = windowCropHeight * windowScale;
+                float windowOffsetX = (scaledWindowWidth - iconWidth * windowIconScale) / 2;
+                float windowOffsetY = (scaledWindowHeight - iconHeight * windowIconScale) / 2;
+
                 // Calculate the window position to match the icon position.
                 tmpRectF.set(launcherIconBounds);
                 tmpRectF.offset(dragLayerBounds[0], dragLayerBounds[1]);
                 tmpRectF.offset(mDx.value, mDy.value);
-                Utilities.scaleRectFAboutCenter(tmpRectF, mIconScaleToFitScreen.value);
-                float windowTransX0 = tmpRectF.left - offsetX - crop.left * scale;
-                float windowTransY0 = tmpRectF.top - offsetY - crop.top * scale;
+                Utilities.scaleRectFAboutCenter(tmpRectF,
+                        mIconScaleToFitScreen.value * windowIconScale);
+                float windowTransX0 = tmpRectF.left - windowOffsetX - crop.left * windowScale;
+                float windowTransY0 = tmpRectF.top - windowOffsetY - crop.top * windowScale;
 
                 // Calculate the icon position.
                 floatingIconBounds.set(launcherIconBounds);
@@ -1080,17 +1114,17 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                     SurfaceProperties builder = transaction.forSurface(surface.leash);
 
                     if (AnimatedSurfaceUtils.isOpening(surface)) {
-                        matrix.setScale(scale, scale);
+                        matrix.setScale(windowScale, windowScale);
                         if (rotationChange == 1) {
                             matrix.postTranslate(windowTransY0,
-                                    mDeviceProfile.getDeviceProperties().getWidthPx() - (windowTransX0 + scaledCropWidth));
+                                    mDeviceProfile.getDeviceProperties().getWidthPx() - (windowTransX0 + scaledWindowWidth));
                         } else if (rotationChange == 2) {
                             matrix.postTranslate(
-                                    mDeviceProfile.getDeviceProperties().getWidthPx() - (windowTransX0 + scaledCropWidth),
-                                    mDeviceProfile.getDeviceProperties().getHeightPx() - (windowTransY0 + scaledCropHeight));
+                                    mDeviceProfile.getDeviceProperties().getWidthPx() - (windowTransX0 + scaledWindowWidth),
+                                    mDeviceProfile.getDeviceProperties().getHeightPx() - (windowTransY0 + scaledWindowHeight));
                         } else if (rotationChange == 3) {
                             matrix.postTranslate(
-                                    mDeviceProfile.getDeviceProperties().getHeightPx() - (windowTransY0 + scaledCropHeight),
+                                    mDeviceProfile.getDeviceProperties().getHeightPx() - (windowTransY0 + scaledWindowHeight),
                                     windowTransX0);
                         } else {
                             matrix.postTranslate(windowTransX0, windowTransY0);
@@ -1101,8 +1135,16 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                         builder.setMatrix(matrix)
                                 .setWindowCrop(crop)
                                 .setAlpha(1f - mIconAlpha.value)
-                                .setCornerRadius(mWindowRadius.value)
                                 .setShadowRadius(mShadowRadius.value);
+                        if (hasDistinctCornerRadii) {
+                            builder.setCornerRadius(
+                                    getCornerRadius(initialRadiusRatios[0]),
+                                    getCornerRadius(initialRadiusRatios[1]),
+                                    getCornerRadius(initialRadiusRatios[2]),
+                                    getCornerRadius(initialRadiusRatios[3]));
+                        } else {
+                            builder.setCornerRadius(mWindowRadius.value);
+                        }
                     } else if (AnimatedSurfaceUtils.isClosing(surface)) {
                         if (surface.localBounds != null) {
                             tmpPos.set(surface.localBounds.left, surface.localBounds.top);
@@ -1130,7 +1172,7 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                 if (navBarSurface != null) {
                     SurfaceProperties navBuilder = transaction.forSurface(navBarSurface.leash);
                     if (mNavFadeIn.value > mNavFadeIn.getStartValue()) {
-                        matrix.setScale(scale, scale);
+                        matrix.setScale(windowScale, windowScale);
                         matrix.postTranslate(windowTransX0, windowTransY0);
                         navBuilder.setMatrix(matrix)
                                 .setWindowCrop(crop)
