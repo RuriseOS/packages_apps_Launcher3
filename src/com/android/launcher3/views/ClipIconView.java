@@ -184,8 +184,11 @@ public class ClipIconView extends View implements ClipPathView {
                         shape = mIsFolderIcon ? themeManager.getFolderShape()
                                 : themeManager.getIconShape();
                     }
-                    mRevealAnimator = shape.createRevealAnimator(this, mStartRevealRect,
-                            mOutline, mTaskCornerRadius, !isOpening);
+                    mRevealAnimator = isOpening
+                            ? shape.createOpenRevealAnimator(this, mStartRevealRect, mOutline,
+                                    mTaskCornerRadius)
+                            : shape.createRevealAnimator(this, mStartRevealRect, mOutline,
+                                    mTaskCornerRadius, true /* isReversed */);
                     mRevealAnimator.addListener(forEndCallback(() -> mRevealAnimator = null));
                     mRevealAnimator.start();
                     // We pause here so we can set the current fraction ourselves.

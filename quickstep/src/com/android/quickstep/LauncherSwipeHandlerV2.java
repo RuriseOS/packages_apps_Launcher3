@@ -40,6 +40,7 @@ import com.android.launcher3.Flags;
 import com.android.launcher3.LauncherAnimUtils;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.anim.AnimatorPlaybackController;
+import com.android.launcher3.graphics.ThemeManager;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.statehandlers.DesktopVisibilityController;
 import com.android.launcher3.states.StateAnimationConfig;
@@ -195,6 +196,12 @@ public class LauncherSwipeHandlerV2 extends AbsSwipeUpHandler<
                 floatingIconView.setOnTargetChangeListener(
                         mSiblingAnimation::onTargetPositionChanged);
                 floatingIconView.setFastFinishRunnable(mSiblingAnimation::end);
+            }
+
+            @Override
+            public float getEndRadius(RectF cropRectF) {
+                return cropRectF.width() * ThemeManager.INSTANCE.get(mContext).getIconShape()
+                        .getMinEnclosingCornerRadius();
             }
 
             @Override

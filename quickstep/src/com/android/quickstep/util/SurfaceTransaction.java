@@ -136,6 +136,16 @@ public class SurfaceTransaction {
         }
 
         /**
+         * Sets a distinct radius for each corner of the surface.
+         * @return this Builder
+         */
+        public SurfaceProperties setCornerRadius(float topLeft, float topRight, float bottomLeft,
+                float bottomRight) {
+            mTransaction.setCornerRadius(mSurface, topLeft, topRight, bottomLeft, bottomRight);
+            return this;
+        }
+
+        /**
          * @param radius the Radius for the shadows to apply to the surface.
          * @return this Builder
          */
@@ -182,6 +192,7 @@ public class SurfaceTransaction {
         public Matrix matrix = null;
         public Rect windowCrop = null;
         public float cornerRadius = 0;
+        public float[] cornerRadii = null;
         public float shadowRadius = 0;
         public int backgroundBlurRadius = 0;
 
@@ -231,6 +242,13 @@ public class SurfaceTransaction {
         @Override
         public SurfaceProperties setCornerRadius(float radius) {
             this.cornerRadius = radius;
+            return this;
+        }
+
+        @Override
+        public SurfaceProperties setCornerRadius(float topLeft, float topRight, float bottomLeft,
+                float bottomRight) {
+            this.cornerRadii = new float[] {topLeft, topRight, bottomLeft, bottomRight};
             return this;
         }
 
