@@ -69,9 +69,10 @@ public class LauncherIconProvider extends IconProvider {
     @Override
     public void updateSystemState() {
         super.updateSystemState();
+        // With config_useRoundIcon, apps use their round icon for every shape, so the shape never
+        // changes the content of the icons.
         mSystemState = mSystemState.withTheme(
-                mThemeManager.getIconState().getThemeCode(),
-                mThemeManager.getIconState().isCircle());
+                mThemeManager.getIconState().getThemeCode(), false /* isCircle */);
     }
 
     private Map<String, ThemeData> getThemedIconMap() {
