@@ -115,8 +115,7 @@ constructor(
         val newState = parseIconState(iconState)
         val oldState = iconState
         if (newState == oldState) return
-        val hasThemedChanged =
-            newState.themeCode != oldState.themeCode || newState.isCircle != oldState.isCircle
+        val hasThemedChanged = newState.themeCode != oldState.themeCode
         iconState = newState
         if (hasThemedChanged) {
             // trigger listeners only for theme change, not shape change
@@ -210,8 +209,6 @@ constructor(
         val themeController: IconThemeController?,
         val themeCode: String,
         val iconShape: ShapeDelegate,
-        /* Icon content may change when using Circle shape due to android:roundIcon property */
-        val isCircle: Boolean = iconShape is ShapeDelegate.Circle,
         val folderShape: ShapeDelegate,
         val shapeRadius: Float,
         val fileShape: ShapeDelegate,
