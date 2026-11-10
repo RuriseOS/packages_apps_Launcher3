@@ -38,6 +38,7 @@ import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 import androidx.fragment.app.DialogFragment;
@@ -66,6 +67,9 @@ import com.android.launcher3.util.SafeCloseable;
 import com.android.launcher3.util.SettingsCache;
 import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity;
 import com.android.settingslib.widget.SettingsBasePreferenceFragment;
+import com.android.settingslib.widget.SettingsThemeHelper;
+
+import com.google.android.material.appbar.AppBarLayout;
 
 /**
  * Settings activity for Launcher.
@@ -395,11 +399,7 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
             }
 
             if (isAdded() && !mPreferenceHighlighted) {
-                PreferenceHighlighter highlighter = createHighlighter();
-                if (highlighter != null) {
-                    getView().postDelayed(highlighter, DELAY_HIGHLIGHT_DURATION_MILLIS);
-                    mPreferenceHighlighted = true;
-                }
+                mPreferenceHighlighted = requestHighlight();
             }
 
             if (mRestartOnResume) {
@@ -438,6 +438,43 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
             if (activity != null) {
                 activity.recreate();
             }
+        }
+
+        @Override
+        protected RecyclerView.Adapter onCreateAdapter(@NonNull PreferenceScreen preferenceScreen) {
+            if (SettingsThemeHelper.isExpressiveTheme(requireContext())) {
+                // Highlights with the rounded backgrounds, like the Settings app
+                return new HighlightablePreferenceGroupAdapter(
+                        preferenceScreen, getFooterDataMap(), mHighLightKey);
+            }
+            return super.onCreateAdapter(preferenceScreen);
+        }
+
+        /**
+         * Highlights the preference requested by the caller, if any.
+         *
+         * @return whether the highlight was started.
+         */
+        private boolean requestHighlight() {
+            if (TextUtils.isEmpty(mHighLightKey) || getPreferenceScreen() == null) {
+                return false;
+            }
+
+            RecyclerView list = getListView();
+            if (list.getAdapter() instanceof HighlightablePreferenceGroupAdapter) {
+                AppBarLayout appBar = getActivity() instanceof CollapsingToolbarBaseActivity
+                        ? ((CollapsingToolbarBaseActivity) getActivity()).getAppBarLayout()
+                        : null;
+                return ((HighlightablePreferenceGroupAdapter) list.getAdapter())
+                        .requestHighlight(getView(), list, appBar);
+            }
+
+            PreferenceHighlighter highlighter = createHighlighter();
+            if (highlighter == null) {
+                return false;
+            }
+            getView().postDelayed(highlighter, DELAY_HIGHLIGHT_DURATION_MILLIS);
+            return true;
         }
 
         private PreferenceHighlighter createHighlighter() {
