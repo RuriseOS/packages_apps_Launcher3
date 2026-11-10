@@ -31,7 +31,6 @@ import android.app.KeyguardManager;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.LauncherApps;
-import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -41,13 +40,8 @@ import android.view.View;
 
 import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
@@ -70,13 +64,13 @@ import com.android.launcher3.lineage.LineageUtils;
 import com.android.launcher3.lineage.trust.TrustAppsActivity;
 import com.android.launcher3.util.SafeCloseable;
 import com.android.launcher3.util.SettingsCache;
+import com.android.settingslib.collapsingtoolbar.CollapsingToolbarBaseActivity;
 import com.android.settingslib.widget.SettingsBasePreferenceFragment;
-import com.android.settingslib.widget.SettingsThemeHelper;
 
 /**
  * Settings activity for Launcher.
  */
-public class SettingsActivity extends FragmentActivity
+public class SettingsActivity extends CollapsingToolbarBaseActivity
         implements OnPreferenceStartFragmentCallback, OnPreferenceStartScreenCallback {
 
     @VisibleForTesting
@@ -108,23 +102,14 @@ public class SettingsActivity extends FragmentActivity
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // Sets up the same collapsing toolbar as the Settings app
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.settings_activity);
 
-        setActionBar(findViewById(R.id.action_bar));
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-
-        View rootView = findViewById(R.id.content_parent);
-        ViewCompat.setOnApplyWindowInsetsListener(rootView, (view, windowInsets) -> {
-            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-            view.setPadding(insets.left, insets.top, insets.right, insets.bottom);
-            return WindowInsetsCompat.CONSUMED;
-        });
-
+        // The main page is opened from the home screen, so only the other pages go back
         Intent intent = getIntent();
-        if (intent.hasExtra(EXTRA_FRAGMENT_ROOT_KEY) || intent.hasExtra(EXTRA_FRAGMENT_ARGS)
-                || intent.hasExtra(EXTRA_FRAGMENT_HIGHLIGHT_KEY)) {
-            getActionBar().setDisplayHomeAsUpEnabled(true);
+        if (!intent.hasExtra(EXTRA_FRAGMENT_ROOT_KEY) && !intent.hasExtra(EXTRA_FRAGMENT_ARGS)
+                && !intent.hasExtra(EXTRA_FRAGMENT_HIGHLIGHT_KEY) && getActionBar() != null) {
+            getActionBar().setDisplayHomeAsUpEnabled(false);
         }
 
         if (savedInstanceState == null) {
@@ -189,17 +174,6 @@ public class SettingsActivity extends FragmentActivity
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public Resources.Theme getTheme() {
-        Resources.Theme theme = super.getTheme();
-        if (SettingsThemeHelper.isExpressiveTheme(this)) {
-            theme.applyStyle(
-                    com.android.settingslib.widget.theme.R.style.Theme_SubSettingsBase_Expressive,
-                    true);
-        }
-        return theme;
     }
 
     /**

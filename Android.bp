@@ -432,6 +432,7 @@ android_library {
         "SystemUISharedLib",
         "SurfaceEffectsViewLib",
         "SettingsLibSettingsTheme",
+        "SettingsLibCollapsingToolbarBaseActivity",
         "dagger2",
         "protolog-group",
         "displaylib",
