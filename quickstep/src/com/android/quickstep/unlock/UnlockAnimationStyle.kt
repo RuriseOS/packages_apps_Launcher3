@@ -32,6 +32,13 @@ import com.android.launcher3.anim.PendingAnimation
 fun interface UnlockAnimationStyle {
 
     fun buildAnimation(anim: PendingAnimation, targets: UnlockTargets, timing: UnlockTiming)
+
+    /**
+     * Builds the animation of [buildAnimation] on the stand-in views of a style preview, e.g. in
+     * the style picker. It should use the same parameters as [buildAnimation] so that the preview
+     * stays faithful. Leaves the preview static by default.
+     */
+    fun buildPreview(anim: PendingAnimation, targets: UnlockPreviewTargets, timing: UnlockTiming) {}
 }
 
 /** The set of Launcher views an [UnlockAnimationStyle] may animate. */
@@ -54,6 +61,32 @@ class UnlockTargets(
         }
     }
 }
+
+/**
+ * Plain views standing in for a home screen page and its hotseat, for [UnlockAnimationStyle]
+ * previews. Unlike [UnlockTargets], items carry no Launcher-specific state: their resting state is
+ * an alpha and scale of 1 and no translation.
+ */
+class UnlockPreviewTargets(
+    /** Parent of every item and of the hotseat, which are laid out directly in it. */
+    val root: View,
+    val columns: Int,
+    val rows: Int,
+    val items: List<UnlockPreviewItem>,
+    val hotseat: View?,
+    /** Center of the grid of [items], in [root] coordinates. */
+    val gridCenterX: Float,
+    val gridCenterY: Float,
+)
+
+/** A preview item spanning [spanX] by [spanY] cells from ([cellX], [cellY]). */
+class UnlockPreviewItem(
+    val view: View,
+    val cellX: Int,
+    val cellY: Int,
+    val spanX: Int,
+    val spanY: Int,
+)
 
 /**
  * Describes where the visible part of an entrance animation starts within the full timeline.

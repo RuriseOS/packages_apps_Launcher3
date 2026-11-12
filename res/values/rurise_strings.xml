@@ -18,12 +18,28 @@
     <string name="pref_unlock_animation_style_title">Unlock animation</string>
     <string name="unlock_animation_style_none">None (system default)</string>
     <string name="unlock_animation_style_ring">Ring reveal</string>
+    <string name="unlock_animation_style_category">Style</string>
+    <string name="unlock_animation_style_footer">Also used when the screen saver starts and when the home screen first appears after a restart.</string>
+    <string name="unlock_animation_preview_description">Preview of the unlock animation</string>
+    <string name="unlock_animation_preview_pause">Pause</string>
+    <string name="unlock_animation_preview_resume">Resume</string>
+    <string name="unlock_animation_style_none_summary">Uses the system\'s default fade</string>
+    <string name="unlock_animation_style_ring_summary">Icons appear ring by ring, from the edges toward the center</string>
+    <!-- Page opened by pref_unlock_animation_style, set where it is available -->
+    <string name="unlock_animation_settings_fragment" translatable="false" />
 
     <!-- Labels for pref_unlock_animation_style, in the same order as
          unlock_animation_style_values. -->
     <string-array name="unlock_animation_style_entries">
         <item>@string/unlock_animation_style_none</item>
         <item>@string/unlock_animation_style_ring</item>
+    </string-array>
+
+    <!-- Descriptions for pref_unlock_animation_style, in the same order as
+         unlock_animation_style_values. -->
+    <string-array name="unlock_animation_style_summaries">
+        <item>@string/unlock_animation_style_none_summary</item>
+        <item>@string/unlock_animation_style_ring_summary</item>
     </string-array>
 
     <!-- Stored values for pref_unlock_animation_style, must match the ids in

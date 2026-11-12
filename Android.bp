@@ -432,6 +432,8 @@ android_library {
         "SystemUISharedLib",
         "SurfaceEffectsViewLib",
         "SettingsLibSettingsTheme",
+        "SettingsLibSelectorWithWidgetPreference",
+        "SettingsLibFooterPreference",
         "SettingsLibCollapsingToolbarBaseActivity",
         "dagger2",
         "protolog-group",

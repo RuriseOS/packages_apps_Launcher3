@@ -80,6 +80,48 @@ class RingAppearStyle(private val spec: RingAppearSpec = RingAppearSpec.DEFAULT)
         disableClipping(anim, targets.visiblePages)
     }
 
+    override fun buildPreview(
+        anim: PendingAnimation,
+        targets: UnlockPreviewTargets,
+        timing: UnlockTiming,
+    ) {
+        val alphaInterpolator = spec.alphaInterpolator.create()
+        val motionInterpolator = spec.motionInterpolator.create()
+        val f = timing.startFraction
+
+        // Same rings as collectRings(): an item belongs to the outermost ring it touches.
+        val entries =
+            targets.items.map { item ->
+                val ring =
+                    minOf(
+                        item.cellX,
+                        item.cellY,
+                        targets.columns - item.cellX - item.spanX,
+                        targets.rows - item.cellY - item.spanY,
+                    )
+                item.view to ring.coerceAtLeast(0)
+            } + listOfNotNull(targets.hotseat?.let { it to 0 })
+
+        entries.forEach { (view, ring) ->
+            val start = (f + (1 - f) * spec.ringDelay * ring).coerceAtMost(1f)
+            val alphaEnd = start + (1 - start) * spec.alphaProgress
+            val alpha = clampToProgress(alphaInterpolator, start, alphaEnd)
+            val motion = clampToProgress(motionInterpolator, start, 1f)
+
+            val centerX = targets.gridCenterX - view.left
+            val centerY = targets.gridCenterY - view.top
+            if (spec.scalePivot == RingAppearSpec.ScalePivot.SHARED_CENTER) {
+                scaleAroundPoint(anim, view, centerX, centerY)
+            }
+            val pullX = (centerX - view.width / 2f) * spec.pullToCenter
+            val pullY = (centerY - view.height / 2f) * spec.pullToCenter
+            anim.addFloat(view, VIEW_ALPHA, 0f, 1f, alpha)
+            anim.addFloat(view, SCALE_PROPERTY, spec.startScale, 1f, motion)
+            anim.addFloat(view, VIEW_TRANSLATE_X, pullX, 0f, motion)
+            anim.addFloat(view, VIEW_TRANSLATE_Y, pullY, 0f, motion)
+        }
+    }
+
     private fun animateItem(
         anim: PendingAnimation,
         view: View,

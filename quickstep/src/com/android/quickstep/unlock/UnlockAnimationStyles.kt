@@ -21,7 +21,8 @@ package com.android.quickstep.unlock
  * [UnlockAnimationStyle] implementations.
  *
  * To add a style: add an id here, return its implementation from [fromId], and append the id and
- * its label to `unlock_animation_style_values` / `unlock_animation_style_entries`.
+ * its label to `unlock_animation_style_values` / `unlock_animation_style_entries`. Implement
+ * [UnlockAnimationStyle.buildPreview] too, for the preview on the style picker.
  */
 object UnlockAnimationStyles {
 

@@ -71,6 +71,8 @@ import com.android.settingslib.widget.SettingsThemeHelper;
 
 import com.google.android.material.appbar.AppBarLayout;
 
+import java.util.Arrays;
+
 /**
  * Settings activity for Launcher.
  */
@@ -88,6 +90,9 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
 
     public static final String EXTRA_FRAGMENT_ARGS = ":settings:fragment_args";
 
+    // Intent extra with the class name of the fragment to show, see isValidFragment()
+    private static final String EXTRA_FRAGMENT_NAME = ":settings:fragment_name";
+
     // Intent extra to indicate the pref-key to highlighted when opening the settings activity
     public static final String EXTRA_FRAGMENT_HIGHLIGHT_KEY = ":settings:fragment_args_key";
     // Intent extra to indicate the pref-key of the root screen when opening the settings activity
@@ -100,6 +105,7 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
     private static final String SEARCH_PACKAGE = "com.google.android.googlequicksearchbox";
     public static final String KEY_TRUST_APPS = "pref_trust_apps";
     private static final String KEY_POST_BOOT_LOADER_STYLE = "pref_post_boot_loader_style";
+    private static final String KEY_UNLOCK_ANIMATION_STYLE = "pref_unlock_animation_style";
 
     private static final String KEY_SUGGESTIONS = "pref_suggestions";
     private static final String SUGGESTIONS_PACKAGE = "com.google.android.as";
@@ -131,9 +137,13 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
                 args.putString(EXTRA_FRAGMENT_ROOT_KEY, root);
             }
 
+            String fragment = intent.getStringExtra(EXTRA_FRAGMENT_NAME);
+            if (!isValidFragment(fragment)) {
+                fragment = getString(R.string.settings_fragment_name);
+            }
+
             final FragmentManager fm = getSupportFragmentManager();
-            final Fragment f = fm.getFragmentFactory().instantiate(getClassLoader(),
-                    getString(R.string.settings_fragment_name));
+            final Fragment f = fm.getFragmentFactory().instantiate(getClassLoader(), fragment);
             f.setArguments(args);
             // Display the fragment as the main content.
             fm.beginTransaction().replace(R.id.content_frame, f).commit();
@@ -153,9 +163,22 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
             ((DialogFragment) f).show(fm, key);
         } else {
             startActivity(new Intent(this, SettingsActivity.class)
-                    .putExtra(EXTRA_FRAGMENT_ARGS, args));
+                    .putExtra(EXTRA_FRAGMENT_ARGS, args)
+                    .putExtra(EXTRA_FRAGMENT_NAME, fragment));
         }
         return true;
+    }
+
+    /**
+     * Returns whether {@code fragment} may be shown as a page of its own. This activity is
+     * exported, so only the pages it links to are accepted.
+     */
+    private boolean isValidFragment(@Nullable String fragment) {
+        if (TextUtils.isEmpty(fragment)) {
+            return false;
+        }
+        return fragment.equals(getString(R.string.settings_fragment_name))
+                || fragment.equals(getString(R.string.unlock_animation_settings_fragment));
     }
 
     @Override
@@ -381,6 +404,13 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
                             : getString(R.string.pref_post_boot_loader_style_requires_lock));
                     loaderStyle.setEnabled(isDeviceSecure());
                     return true;
+                case KEY_UNLOCK_ANIMATION_STYLE:
+                    // The styles and their page are only available with quickstep
+                    if (TextUtils.isEmpty(preference.getFragment())) {
+                        return false;
+                    }
+                    updateUnlockAnimationSummary(preference);
+                    return true;
                 case SHOW_HOTSEAT_QSB_KEY:
                     return launcherApps != null &&
                             launcherApps.isPackageEnabled(SEARCH_PACKAGE, myUserHandle());
@@ -396,6 +426,12 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
             Preference loaderStyle = findPreference(KEY_POST_BOOT_LOADER_STYLE);
             if (loaderStyle != null) {
                 loaderStyle.setEnabled(isDeviceSecure());
+            }
+
+            // The style may have been changed on its own page
+            Preference unlockAnimationStyle = findPreference(KEY_UNLOCK_ANIMATION_STYLE);
+            if (unlockAnimationStyle != null) {
+                updateUnlockAnimationSummary(unlockAnimationStyle);
             }
 
             if (isAdded() && !mPreferenceHighlighted) {
@@ -414,6 +450,15 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
                 mSettingCacheSafeCloseable.close();
                 mSettingCacheSafeCloseable = null;
             }
+        }
+
+        private void updateUnlockAnimationSummary(Preference preference) {
+            String[] ids = getResources().getStringArray(R.array.unlock_animation_style_values);
+            String[] labels = getResources().getStringArray(R.array.unlock_animation_style_entries);
+            int index = Arrays.asList(ids).indexOf(
+                    LauncherPrefs.UNLOCK_ANIMATION_STYLE.get(getContext()));
+            // Unknown ids fall back to the first one, the system default
+            preference.setSummary(labels[Math.max(index, 0)]);
         }
 
         private boolean isDeviceSecure() {
