@@ -39,15 +39,11 @@
         android:title="@string/pref_unlock_animation_style_title"
         android:fragment="@string/unlock_animation_settings_fragment" />
 
-    <ListPreference
-        android:defaultValue="none"
+    <Preference
         android:key="pref_post_boot_loader_style"
         android:persistent="false"
         android:title="@string/pref_post_boot_loader_style_title"
-        android:dialogTitle="@string/pref_post_boot_loader_style_title"
-        android:entries="@array/post_boot_loader_style_entries"
-        android:entryValues="@array/post_boot_loader_style_values"
-        launcher:useSimpleSummaryProvider="true" />
+        android:fragment="@string/post_boot_loader_settings_fragment" />
 
     <com.android.launcher3.settings.NotificationDotsPreference
         android:key="pref_icon_badging"

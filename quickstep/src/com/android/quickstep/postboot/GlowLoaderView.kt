@@ -249,7 +249,8 @@ class GlowLoaderView(context: Context, private val surfaceColor: Int, accentColo
 
         private val NOISE_TYPE = TurbulenceNoiseShader.Companion.Type.SIMPLEX_NOISE_SIMPLE
         private const val NOISE_ALPHA = 51 // 20%
-        private const val NOISE_GRID_COUNT = 4.5f
+        // Also used by the preview in the settings
+        internal const val NOISE_GRID_COUNT = 4.5f
         // The loader is normally gone within seconds, this only bounds a stuck load
         private const val NOISE_MAX_DURATION = 60_000f
         private const val NOISE_FADE_IN_DURATION = 500L

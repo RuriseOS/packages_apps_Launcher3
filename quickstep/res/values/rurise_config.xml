@@ -17,6 +17,9 @@
     <!-- Page opened by pref_unlock_animation_style -->
     <string name="unlock_animation_settings_fragment" translatable="false">com.android.quickstep.unlock.UnlockAnimationSettingsFragment</string>
 
+    <!-- Page opened by pref_post_boot_loader_style -->
+    <string name="post_boot_loader_settings_fragment" translatable="false">com.android.quickstep.postboot.PostBootLoaderSettingsFragment</string>
+
     <!-- Matches the height of the illustrations in Settings -->
     <dimen name="unlock_animation_preview_card_height">300dp</dimen>
 </resources>

@@ -28,4 +28,10 @@
     <string name="post_boot_loader_style_none">無（系統預設）</string>
     <string name="post_boot_loader_style_glow">柔光</string>
     <string name="pref_post_boot_loader_style_requires_lock">需要設定螢幕鎖定</string>
+    <string name="post_boot_loader_style_none_summary">載入期間只顯示桌布</string>
+    <string name="post_boot_loader_style_glow_summary">模糊的桌布上浮現流動的光暈和載入指示器</string>
+    <string name="post_boot_loader_style_footer">重新開機後第一次解鎖時，主畫面要花幾秒鐘準備。這段時間會先顯示載入畫面，準備好後再用你選的解鎖動畫進入主畫面。</string>
+    <string name="post_boot_loader_preview_description">重新開機後的載入畫面預覽</string>
+    <string name="post_boot_loader_requires_lock_summary">沒有螢幕鎖定時，手機開機後會自動解鎖，主畫面通常在你滑開前就已載入完成。</string>
+    <string name="post_boot_loader_set_screen_lock">設定螢幕鎖定</string>
 </resources>

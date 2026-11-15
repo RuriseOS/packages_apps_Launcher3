@@ -22,8 +22,10 @@ import com.android.launcher3.LauncherPrefs
 /**
  * Ids stored in [LauncherPrefs.POST_BOOT_LOADER_STYLE].
  *
- * To add a style: add an id here, handle it in [PostBootLoader], and append the id and its label
- * to `post_boot_loader_style_values` / `post_boot_loader_style_entries`.
+ * To add a style: add an id here, handle it in [PostBootLoader] and in the preview of
+ * [PostBootLoaderInterlude], and append the id, its label and its description to
+ * `post_boot_loader_style_values` / `post_boot_loader_style_entries` /
+ * `post_boot_loader_style_summaries`.
  */
 object PostBootLoaderStyles {
 

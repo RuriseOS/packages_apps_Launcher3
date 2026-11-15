@@ -434,6 +434,7 @@ android_library {
         "SettingsLibSettingsTheme",
         "SettingsLibSelectorWithWidgetPreference",
         "SettingsLibFooterPreference",
+        "SettingsLibBannerMessagePreference",
         "SettingsLibCollapsingToolbarBaseActivity",
         "dagger2",
         "protolog-group",

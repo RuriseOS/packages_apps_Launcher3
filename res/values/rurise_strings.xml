@@ -54,12 +54,28 @@
     <string name="post_boot_loader_style_none">None (system default)</string>
     <string name="post_boot_loader_style_glow">Soft glow</string>
     <string name="pref_post_boot_loader_style_requires_lock">Requires a screen lock</string>
+    <string name="post_boot_loader_style_none_summary">Shows only the wallpaper while loading</string>
+    <string name="post_boot_loader_style_glow_summary">A drifting glow and a loading indicator over the blurred wallpaper</string>
+    <string name="post_boot_loader_style_footer">The first time you unlock after a restart, your home screen needs a few seconds to get ready. You\'ll see this loading screen in the meantime, then your home screen comes in with your unlock animation.</string>
+    <string name="post_boot_loader_preview_description">Preview of the loading screen after restart</string>
+    <!-- Banner on the loading screen page when no screen lock is set -->
+    <string name="post_boot_loader_requires_lock_summary">Without a screen lock, the phone unlocks by itself at startup, and the home screen has usually loaded before you swipe up.</string>
+    <string name="post_boot_loader_set_screen_lock">Set screen lock</string>
+    <!-- Page opened by pref_post_boot_loader_style, set where it is available -->
+    <string name="post_boot_loader_settings_fragment" translatable="false" />
 
     <!-- Labels for pref_post_boot_loader_style, in the same order as
          post_boot_loader_style_values. -->
     <string-array name="post_boot_loader_style_entries">
         <item>@string/post_boot_loader_style_none</item>
         <item>@string/post_boot_loader_style_glow</item>
+    </string-array>
+
+    <!-- Descriptions for pref_post_boot_loader_style, in the same order as
+         post_boot_loader_style_values. -->
+    <string-array name="post_boot_loader_style_summaries">
+        <item>@string/post_boot_loader_style_none_summary</item>
+        <item>@string/post_boot_loader_style_glow_summary</item>
     </string-array>
 
     <!-- Stored values for pref_post_boot_loader_style, must match the ids in

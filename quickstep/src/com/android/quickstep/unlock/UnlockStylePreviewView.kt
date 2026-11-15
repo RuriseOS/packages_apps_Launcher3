@@ -56,6 +56,8 @@ import kotlin.math.min
  * It is drawn as a phone with side buttons, like illustrations in Settings. Apps and widgets are
  * flat shapes in the theme colors, on a grid of the device's size. The locked state shows a clock
  * and a lock. Like illustrations in Settings, the playback can be paused.
+ *
+ * An [Interlude] can play between the lock screen and the home screen, such as a loading screen.
  */
 class UnlockStylePreviewView
 @JvmOverloads
@@ -70,6 +72,24 @@ constructor(context: Context, attrs: AttributeSet? = null) : FrameLayout(context
                 isPaused = false
                 restart()
             }
+        }
+
+    /** Played between the lock screen leaving and the home screen coming in, if any. */
+    var interlude: Interlude? = null
+        set(value) {
+            if (field === value) return
+            interludeLayer.removeAllViews()
+            field = value
+            value?.view?.let {
+                // Still in the previous preview when the card is bound again
+                (it.parent as? ViewGroup)?.removeView(it)
+                interludeLayer.addView(
+                    it,
+                    LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT),
+                )
+            }
+            isPaused = false
+            restart()
         }
 
     private val idp = InvariantDeviceProfile.INSTANCE.get(context)
@@ -101,6 +121,8 @@ constructor(context: Context, attrs: AttributeSet? = null) : FrameLayout(context
     private val grid = GridLayer(context)
     private val items = ArrayList<UnlockPreviewItem>()
     private val hotseat: PreviewItemView
+    /** Holds the view of the [interlude], above the home screen and below the lock screen. */
+    private val interludeLayer = FrameLayout(context)
     /** Holds the lock screen content, which fades in at the start of each run. */
     private val lockLayer = FrameLayout(context)
     /** Shown while the preview is locked, fade out when the entrance starts. */
@@ -136,6 +158,10 @@ constructor(context: Context, attrs: AttributeSet? = null) : FrameLayout(context
             LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT),
         )
         fadeLayer.addView(grid, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        screen.addView(
+            interludeLayer,
+            LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT),
+        )
         screen.addView(
             lockLayer,
             LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT),
@@ -335,12 +361,13 @@ constructor(context: Context, attrs: AttributeSet? = null) : FrameLayout(context
     private fun startLoop() {
         if (!running || !ValueAnimator.areAnimatorsEnabled() || width == 0) return
         buildRun()
+        val cycleMs = fadeOutStartMs + FADE_OUT_MS
         val loop =
             ValueAnimator.ofFloat(0f, 1f).apply {
-                duration = CYCLE_MS
+                duration = cycleMs
                 interpolator = LINEAR
                 repeatCount = ValueAnimator.INFINITE
-                addUpdateListener { showCycleTime(it.animatedFraction * CYCLE_MS) }
+                addUpdateListener { showCycleTime(it.animatedFraction * cycleMs) }
                 addListener(
                     object : AnimatorListenerAdapter() {
                         override fun onAnimationRepeat(animation: Animator) = buildRun()
@@ -351,6 +378,13 @@ constructor(context: Context, attrs: AttributeSet? = null) : FrameLayout(context
         loop.start()
         if (isPaused) loop.pause()
     }
+
+    /** When the home screen starts to come in: after the lock screen, or after the interlude. */
+    private val entranceStartMs: Long
+        get() = LOCKED_HOLD_MS + (interlude?.durationMs ?: LOCK_EXIT_MS)
+
+    private val fadeOutStartMs: Long
+        get() = entranceStartMs + RUN_MS + REST_HOLD_MS
 
     /** Fraction of the entrance last applied, to skip frames where nothing moves. */
     private var shownEntranceFraction = Float.NaN
@@ -366,15 +400,16 @@ constructor(context: Context, attrs: AttributeSet? = null) : FrameLayout(context
             )
         lockClock.alpha = 1f - lockExit
         lockIcon.alpha = 1f - lockExit
+        interlude?.showTime(time - LOCKED_HOLD_MS)
         // Most of a run is spent holding the locked or the home screen; only update the entrance
         // while it moves
-        val entranceFraction = ((time - ENTRANCE_START_MS) / RUN_MS).coerceIn(0f, 1f)
+        val entranceFraction = ((time - entranceStartMs) / RUN_MS).coerceIn(0f, 1f)
         if (entranceFraction != shownEntranceFraction) {
             shownEntranceFraction = entranceFraction
             controller.setPlayFraction(entranceFraction)
         }
         lockLayer.alpha = (time / LOCK_FADE_IN_MS).coerceIn(0f, 1f)
-        fadeLayer.alpha = 1f - ((time - FADE_OUT_START_MS) / FADE_OUT_MS).coerceIn(0f, 1f)
+        fadeLayer.alpha = 1f - ((time - fadeOutStartMs) / FADE_OUT_MS).coerceIn(0f, 1f)
     }
 
     /** Builds the entrance of the next run and holds its start state, as on the keyguard. */
@@ -449,6 +484,25 @@ constructor(context: Context, attrs: AttributeSet? = null) : FrameLayout(context
         // At rest the home screen is unlocked
         lockIcon.alpha = 0f
         lockClock.alpha = 0f
+        interlude?.reset()
+    }
+
+    /**
+     * Something shown between the lock screen and the home screen. It starts when the lock screen
+     * starts to leave, and the home screen comes in [durationMs] later, behind it.
+     */
+    interface Interlude {
+        /** Drawn above the home screen and below the lock screen, or null to show nothing. */
+        val view: View?
+
+        /** Time from the lock screen starting to leave to the home screen starting to come in. */
+        val durationMs: Long
+
+        /** Shows the state at [time] milliseconds after the lock screen started to leave. */
+        fun showTime(time: Float)
+
+        /** Hides it, as at the start of a run or when the preview doesn't play. */
+        fun reset()
     }
 
     /** Lays the items out on the device's grid, above a hotseat. */
@@ -678,10 +732,7 @@ constructor(context: Context, attrs: AttributeSet? = null) : FrameLayout(context
         private const val REST_HOLD_MS = 1800L
         private const val FADE_OUT_MS = 250L
         /** The lock screen fades out over this time, then the entrance starts. */
-        private const val LOCK_EXIT_MS = 120f
-        private const val ENTRANCE_START_MS = LOCKED_HOLD_MS + 120L
-        private const val FADE_OUT_START_MS = ENTRANCE_START_MS + RUN_MS + REST_HOLD_MS
-        private const val CYCLE_MS = FADE_OUT_START_MS + FADE_OUT_MS
+        private const val LOCK_EXIT_MS = 120L
         /** Time the lock screen takes to appear at the start of a run. */
         private const val LOCK_FADE_IN_MS = 250f
 

@@ -28,6 +28,9 @@ import com.android.settingslib.widget.GroupSectionDividerMixin
 /**
  * A card on top of the unlock animation settings that keeps playing the selected style, from the
  * locked state to the home screen. Tapping it pauses or resumes the animation.
+ *
+ * Other pages that end with the unlock animation, such as the loading screen after a restart, use
+ * it with an [interlude] and their own [previewDescription].
  */
 class UnlockAnimationPreviewPreference(context: Context) :
     Preference(context), GroupSectionDividerMixin {
@@ -37,6 +40,21 @@ class UnlockAnimationPreviewPreference(context: Context) :
         set(value) {
             field = value
             boundPreview?.styleId = value
+        }
+
+    /** Played between the lock screen and the home screen, see [UnlockStylePreviewView]. */
+    var interlude: UnlockStylePreviewView.Interlude? = null
+        set(value) {
+            field = value
+            boundPreview?.interlude = value
+        }
+
+    /** Read out for the card. */
+    var previewDescription: CharSequence =
+        context.getString(R.string.unlock_animation_preview_description)
+        set(value) {
+            field = value
+            notifyChanged()
         }
 
     /** The preview currently bound, if any, so that selection changes don't rebind the card. */
@@ -56,8 +74,10 @@ class UnlockAnimationPreviewPreference(context: Context) :
         val preview = holder.findViewById(R.id.unlock_animation_preview) as UnlockStylePreviewView
         boundPreview = preview
         preview.styleId = styleId
+        preview.interlude = interlude
 
         val card = holder.findViewById(R.id.unlock_animation_preview_card) as View
+        card.contentDescription = previewDescription
         // Like illustrations in Settings, tapping pauses or resumes the animation.
         card.setOnClickListener { preview.togglePause() }
         card.setAccessibilityDelegate(

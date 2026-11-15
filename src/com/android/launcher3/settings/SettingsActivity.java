@@ -44,7 +44,6 @@ import androidx.annotation.VisibleForTesting;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
-import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceFragmentCompat.OnPreferenceStartFragmentCallback;
@@ -178,7 +177,8 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
             return false;
         }
         return fragment.equals(getString(R.string.settings_fragment_name))
-                || fragment.equals(getString(R.string.unlock_animation_settings_fragment));
+                || fragment.equals(getString(R.string.unlock_animation_settings_fragment))
+                || fragment.equals(getString(R.string.post_boot_loader_settings_fragment));
     }
 
     @Override
@@ -388,21 +388,11 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
                     });
                     return true;
                 case KEY_POST_BOOT_LOADER_STYLE:
-                    ListPreference loaderStyle = (ListPreference) preference;
-                    // Stored in device protected storage so that it can be read before the first
-                    // unlock, which the preference framework can't do by itself.
-                    loaderStyle.setValue(LauncherPrefs.POST_BOOT_LOADER_STYLE.get(getContext()));
-                    loaderStyle.setOnPreferenceChangeListener((pref, newValue) -> {
-                        LauncherPrefs.get(getContext()).put(
-                                LauncherPrefs.POST_BOOT_LOADER_STYLE, (String) newValue);
-                        return true;
-                    });
-                    // The loader is only shown while the user is locked, which needs a screen
-                    // lock. Keep the choice for when one is set.
-                    loaderStyle.setSummaryProvider(pref -> isDeviceSecure()
-                            ? loaderStyle.getEntry()
-                            : getString(R.string.pref_post_boot_loader_style_requires_lock));
-                    loaderStyle.setEnabled(isDeviceSecure());
+                    // The loader and its page are only available with quickstep
+                    if (TextUtils.isEmpty(preference.getFragment())) {
+                        return false;
+                    }
+                    updatePostBootLoaderSummary(preference);
                     return true;
                 case KEY_UNLOCK_ANIMATION_STYLE:
                     // The styles and their page are only available with quickstep
@@ -422,10 +412,11 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
         public void onResume() {
             super.onResume();
 
-            // A screen lock may have been set or removed while away
+            // The style may have been changed on its own page, and a screen lock may have been
+            // set or removed while away
             Preference loaderStyle = findPreference(KEY_POST_BOOT_LOADER_STYLE);
             if (loaderStyle != null) {
-                loaderStyle.setEnabled(isDeviceSecure());
+                updatePostBootLoaderSummary(loaderStyle);
             }
 
             // The style may have been changed on its own page
@@ -458,6 +449,26 @@ public class SettingsActivity extends CollapsingToolbarBaseActivity
             int index = Arrays.asList(ids).indexOf(
                     LauncherPrefs.UNLOCK_ANIMATION_STYLE.get(getContext()));
             // Unknown ids fall back to the first one, the system default
+            preference.setSummary(labels[Math.max(index, 0)]);
+        }
+
+        /**
+         * Shows the loading screen style, or that it needs a screen lock: the loader is only shown
+         * while the user is locked. The page stays reachable to explain it, and keeps the choice
+         * for when a screen lock is set.
+         */
+        private void updatePostBootLoaderSummary(Preference preference) {
+            if (!isDeviceSecure()) {
+                preference.setSummary(R.string.pref_post_boot_loader_style_requires_lock);
+                return;
+            }
+            String[] ids = getResources().getStringArray(R.array.post_boot_loader_style_values);
+            String[] labels =
+                    getResources().getStringArray(R.array.post_boot_loader_style_entries);
+            // Stored in device protected storage so that it can be read before the first unlock
+            int index = Arrays.asList(ids).indexOf(
+                    LauncherPrefs.POST_BOOT_LOADER_STYLE.get(getContext()));
+            // Unknown ids fall back to the first one, no loading screen
             preference.setSummary(labels[Math.max(index, 0)]);
         }
 
