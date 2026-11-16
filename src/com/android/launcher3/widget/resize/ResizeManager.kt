@@ -16,7 +16,6 @@
 
 package com.android.launcher3.widget.resize
 
-import android.appwidget.AppWidgetProviderInfo
 import android.graphics.Rect
 import android.view.ViewGroup
 import androidx.compose.ui.geometry.Offset
@@ -84,7 +83,6 @@ class ResizeManager(
                 )
             else widgetView.appWidgetInfo as? LauncherAppWidgetProviderInfo
 
-        val resizeMode = widgetProviderInfo?.resizeMode ?: 0
         val idp = cellLayout.context.appComponent.idp
         resizeConstraints =
             ResizeConstraints(
@@ -94,10 +92,9 @@ class ResizeManager(
                 maxVSpan = widgetProviderInfo?.maxSpanY ?: itemInfo.spanY,
                 cellCountX = idp.numRows,
                 cellCountY = idp.numColumns,
-                horizontalResizeModeEnabled =
-                    resizeMode and AppWidgetProviderInfo.RESIZE_HORIZONTAL != 0,
-                verticalResizeModeEnabled =
-                    resizeMode and AppWidgetProviderInfo.RESIZE_VERTICAL != 0,
+                // Allow resizing any widget, regardless of its declared resizeMode.
+                horizontalResizeModeEnabled = true,
+                verticalResizeModeEnabled = true,
             )
 
         initializeWidgetViewForResize(itemInfo)
