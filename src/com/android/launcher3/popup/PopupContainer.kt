@@ -86,27 +86,65 @@ open class PopupContainer<T : ActivityContext>(
 
     private var fixedDragLayerPos: Rect? = null
 
+    /**
+     * Whether menu actions receive a view placed over the clicked row instead of [originalView],
+     * so that activities launched from the menu animate from the row that was tapped.
+     */
+    private var launchFromClickedItem = false
+
     /** Handles a deep shortcut click event. */
     private fun onDeepShortcutClick(item: WorkspaceItemInfo, iconBounds: Rect) {
+        mActivityContext.itemOnClickListener.onClick(placeAnimationProxy(iconBounds, item))
+    }
+
+    /**
+     * Places [animationProxyView] over [boundsInWindow] with the given [tag] and returns it, for
+     * use as the launch source of an activity started from the popup.
+     */
+    private fun placeAnimationProxy(boundsInWindow: Rect, tag: ItemInfo?): View {
         if (animationProxyView.parent == null) {
             popupContainer.addView(animationProxyView)
         }
 
         val dlPos = IntArray(2).also { popupContainer.getLocationInWindow(it) }
-        animationProxyView.apply {
-            tag = item
+        val proxyLeft = boundsInWindow.left - dlPos[0]
+        val proxyTop = boundsInWindow.top - dlPos[1]
+        val proxyWidth = boundsInWindow.width()
+        val proxyHeight = boundsInWindow.height()
+        return animationProxyView.apply {
+            this.tag = tag
             layoutParams =
                 (layoutParams as? BaseDragLayer.LayoutParams ?: BaseDragLayer.LayoutParams(0, 0))
-                    .apply {
-                        width = iconBounds.width()
-                        height = iconBounds.height()
-                        x = iconBounds.left - dlPos[0]
-                        y = iconBounds.top - dlPos[1]
-                        customPosition = true
-                        ignoreInsets = true
+                    .also {
+                        it.width = proxyWidth
+                        it.height = proxyHeight
+                        it.x = proxyLeft
+                        it.y = proxyTop
+                        it.customPosition = true
+                        it.ignoreInsets = true
                     }
+            // Lay out right away: the launch reads the bounds before the next layout pass.
+            measure(
+                View.MeasureSpec.makeMeasureSpec(proxyWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(proxyHeight, View.MeasureSpec.EXACTLY),
+            )
+            layout(proxyLeft, proxyTop, proxyLeft + proxyWidth, proxyTop + proxyHeight)
         }
-        mActivityContext.itemOnClickListener.onClick(animationProxyView)
+    }
+
+    /**
+     * Returns the view that menu actions receive for a click on [row]. The row itself is not
+     * passed because its tag is the [PopupData], while launch animations expect an [ItemInfo] tag.
+     * The returned view covers the row's icon, which is where launches from a row start.
+     */
+    private fun getActionView(row: DeepShortcutView, itemView: View): View {
+        if (!launchFromClickedItem) return itemView
+        val icon = row.iconView
+        val pos = IntArray(2).also { icon.getLocationInWindow(it) }
+        return placeAnimationProxy(
+            Rect(pos[0], pos[1], pos[0] + icon.width, pos[1] + icon.height),
+            /* tag= */ null,
+        )
     }
 
     private fun canAddShortcut(): Boolean {
@@ -153,7 +191,11 @@ open class PopupContainer<T : ActivityContext>(
                             .withItemInfo(itemInfo)
                             .log(systemShortcut.eventId)
                     }
-                    systemShortcut.popupAction.invoke(activityContext, itemInfo, itemView)
+                    systemShortcut.popupAction.invoke(
+                        activityContext,
+                        itemInfo,
+                        getActionView(view, itemView),
+                    )
                 }
             }
             show()
@@ -431,6 +473,8 @@ open class PopupContainer<T : ActivityContext>(
          *
          * @param popupPos Position of the event relative to dragLayer, where the popup should be
          *   anchored
+         * @param launchFromClickedItem Whether the actions receive a view over the clicked row
+         *   instead of [view], for menus whose [view] is not a meaningful launch source
          */
         @JvmOverloads
         fun showForMenuItems(
@@ -438,6 +482,7 @@ open class PopupContainer<T : ActivityContext>(
             view: View,
             items: List<PopupData>,
             popupPos: Rect? = null,
+            launchFromClickedItem: Boolean = false,
         ): PopupContainer<ActivityContext>? {
             if (items.isEmpty()) return null
             return create<ActivityContext>(
@@ -447,6 +492,7 @@ open class PopupContainer<T : ActivityContext>(
                 )
                 .apply {
                     fixedDragLayerPos = popupPos
+                    this.launchFromClickedItem = launchFromClickedItem
                     showForSystemShortcuts(items, activity, view)
                 }
         }

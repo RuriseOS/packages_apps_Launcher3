@@ -2427,7 +2427,8 @@ public class Launcher extends StatefulActivity<LauncherState>
                 this,
                 getRootView(),
                 WorkspaceLongPressOptions.getAll(this),
-                pos
+                pos,
+                /* launchFromClickedItem= */ true
         );
     }
 
